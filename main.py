@@ -127,28 +127,17 @@ if process_url_clicked :
    
 
     # creating faiss index. 
-    dimension = len(embeddings.embed_query("hello world"))
-
-    index = faiss.IndexFlatL2(dimension)
-
-    # creating a store for the vector database
-    vector_store = FAISS(
-        embedding_function=embeddings,
-        index=index,
-        docstore=InMemoryDocstore(),
-        index_to_docstore_id={},
-    )
-
-    uuids = []
-
-    for _ in range(len(document_format)) :
-        uuids.append(str(uuid4()))
-
-    vector_store.add_documents(documents=document_format, ids=uuids)
+    # safety check
+    if not document_format:
+        st.error("No valid documents found. Try different URLs.")
+        st.stop()
 
     main_placefolder.write("Creating embeddings...")
 
-    # saving the data locally into disc so that we can retrive it whenever we want. 
+    # create FAISS directly (THIS FIXES YOUR ERROR)
+    vector_store = FAISS.from_documents(document_format, embeddings)
+
+    # save locally
     vector_store.save_local("faiss_store")
 
 query = main_placefolder.text_input("Enter your query")   
