@@ -1,6 +1,6 @@
 import os 
 import streamlit as st
-from langchain_community.document_loaders import UnstructuredURLLoader
+from langchain_community.document_loaders import WebBaseLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
@@ -64,7 +64,7 @@ if process_url_clicked :
 
         # load data from urls
 
-        loader = UnstructuredURLLoader(urls=urls)
+        loader = WebBaseLoader(urls)
         data = loader.load()
 
         st.write("Documents loaded:", len(data))
