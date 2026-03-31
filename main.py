@@ -67,7 +67,7 @@ if process_url_clicked :
         loader = WebBaseLoader(urls)
         data = loader.load()
 
-        st.write("Documents loaded:", len(data))
+        
 
         # data = [
         #     Document(
