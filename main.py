@@ -12,6 +12,7 @@ from langchain_classic.chains import RetrievalQAWithSourcesChain
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 
+
 load_dotenv()
 
 groq_api_key = os.getenv("GROQ_API_KEY")
@@ -63,11 +64,10 @@ if process_url_clicked :
 
         # load data from urls
 
-        loader = UnstructuredURLLoader(
-            urls=urls, 
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
-            )
+        loader = UnstructuredURLLoader(urls=urls)
         data = loader.load()
+
+        st.write("Documents loaded:", len(data))
 
         # data = [
         #     Document(
