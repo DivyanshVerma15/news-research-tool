@@ -19,9 +19,16 @@ groq_api_key = os.getenv("GROQ_API_KEY")
 llm = ChatGroq(model="llama-3.3-70b-versatile")
     
 
-st.title("News Research Tool")
+st.set_page_config(page_title="Research Tool", page_icon="📰")
+st.title("Research Tool")
 
-st.sidebar.title("News Articles URL")
+st.sidebar.title("Articles URL")
+
+# 2. Use Session State for Persistence
+if "processed" not in st.session_state:
+    st.session_state.processed = False
+if "vector_store" not in st.session_state:
+    st.session_state.vector_store = None
 
 # st.empty() creates an “empty container” on the Streamlit page.
 # We can use this container to display content later on.
@@ -42,111 +49,80 @@ process_url_clicked = st.sidebar.button("Process URLs")
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
 
 
-
+# 4. Processing Logic
 
 if process_url_clicked :
     
-    # load data from urls
-    loader = UnstructuredURLLoader(urls=urls)
-
-    # displayed on the screen when data is fetched.
-    main_placefolder.write("Loading data from URLs...")
-
-    data = loader.load()
-    # data = [
-    #     Document(
-    #         page_content="This is the full content of page 1...",
-    #         metadata={"source": "https://example.com/page1"}
-    #     ),
-    #     Document(
-    #         page_content="This is the full content of page 2...",
-    #         metadata={"source": "https://example.com/page2"}
-    #     ),
-    #     Document(
-    #         page_content="This is the full content of page 3...",
-    #         metadata={"source": "https://example.com/page3"}
-    #     ),
-    # ]
-
-    # text splitting into chunks 
-    splitted_text = RecursiveCharacterTextSplitter(
-        separators=["\n\n", "\n", " "],
-        chunk_size=500,  
-    )
-
-    # displayed on the screen when text is split into chunks.
-    main_placefolder.write("Splitting text into chunks...")
-
-    # creates a list called 'docs' which stores 3 further list and in which there are chunks in the form of string.
-    # docs = [
-    #     [  # Chunks from URL 1
-    #         "First chunk of doc 1",
-    #         "Second chunk of doc 1",
-    #         "Third chunk of doc 1",
-    #         ...
-    #     ],
-    #     [  # Chunks from URL 2
-    #         "First chunk of doc 2",
-    #         "Second chunk of doc 2",
-    #         ...
-    #     ],
-    #     [  # Chunks from URL 3
-    #         "First chunk of doc 3",
-    #         "Second chunk of doc 3",
-    #         ...
-    #     ]
-    # ]
-    docs = []
-    for i in range(len(data)) :
-        docs.append(splitted_text.split_text(data[i].page_content))
-
-    
-
-
-    # converting this list of strings to list of documents because embeddings work on document format.
-    document_format = []
-    for i, doc in enumerate(docs):
-        
-        if not doc:   # skip empty docs
-            continue
-        
-        for chunk in doc :
-
-            if not chunk or not chunk.strip():  # skip empty chunks
-                continue    
-
-            document_format.append(
-                Document(
-                    page_content=chunk,
-                    metadata={"source": urls[0] if urls else f"doc_{i}"}  # use URL as source or a placeholder
-                )
-            )
-
-    
-
-   
-
-    # creating faiss index. 
-    # safety check
-    if not document_format:
-        st.error("No valid documents found. Try different URLs.")
+    if not any(urls):
+        st.sidebar.error("Please enter at least one URL")
         st.stop()
 
-    main_placefolder.write("Creating embeddings...")
+    else :
+        # displayed on the screen when data is fetched.
+        main_placefolder.text("Data Loading... Started... ✅✅✅")
 
-    # create FAISS directly (THIS FIXES YOUR ERROR)
-    vector_store = FAISS.from_documents(document_format, embeddings)
+        # load data from urls
 
-    # save locally
-    vector_store.save_local("faiss_store")
+        loader = UnstructuredURLLoader(urls=urls)
+        data = loader.load()
 
-query = main_placefolder.text_input("Enter your query")   
+        # data = [
+        #     Document(
+        #         page_content="This is the full content of page 1...",
+        #         metadata={"source": "https://example.com/page1"}
+        #     ),
+        #     Document(
+        #         page_content="This is the full content of page 2...",
+        #         metadata={"source": "https://example.com/page2"}
+        #     ),
+        #     Document(
+        #         page_content="This is the full content of page 3...",
+        #         metadata={"source": "https://example.com/page3"}
+        #     ),
+        # ]
+   
+
+        main_placefolder.text("Splitting Data... Started... ✅✅✅")
+    
+        # text splitting into chunks 
+        splitted_text = RecursiveCharacterTextSplitter(
+            separators=["\n\n", "\n", " "],
+            chunk_size=1000, 
+            chunk_overlap = 200 
+        )   
+
+        # displayed on the screen when text is split into chunks.
+        main_placefolder.text("Splitting Data... Started... ✅✅✅")
+
+        document_format = splitted_text.split_documents(data)  
+    
+        
+        main_placefolder.text("Building Vector Store... Started... ✅✅✅")
+        vector_store = FAISS.from_documents(document_format, embeddings)
+
+        
+        # save locally
+        vector_store.save_local("faiss_store")
+
+        # Store in session state
+        st.session_state.vector_store = vector_store
+        st.session_state.processed = True
+        main_placefolder.text("Processing Complete! Ready for Q&A.")
+    
+
+
+
+query = st.text_input("Enter your query")   
 
 
 
 if query :
-    if os.path.exists("faiss_store") :
-        new_vector_store = FAISS.load_local(
+
+    if st.session_state.processed and st.session_state.vector_store:
+        
+
+        if os.path.exists("faiss_store") :
+            new_vector_store = FAISS.load_local(
             "faiss_store", embeddings, allow_dangerous_deserialization=True
         )
 
