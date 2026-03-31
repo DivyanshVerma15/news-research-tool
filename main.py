@@ -97,7 +97,7 @@ if process_url_clicked :
     #     ]
     # ]
     docs = []
-    for i in range(3) :
+    for i in range(len(data)) :
         docs.append(splitted_text.split_text(data[i].page_content))
 
     
