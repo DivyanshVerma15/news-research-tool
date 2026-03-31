@@ -106,7 +106,15 @@ if process_url_clicked :
     # converting this list of strings to list of documents because embeddings work on document format.
     document_format = []
     for i, doc in enumerate(docs):
+        
+        if not doc:   # skip empty docs
+            continue
+        
         for chunk in doc :
+
+            if not chunk or not chunk.strip():  # skip empty chunks
+                continue    
+
             document_format.append(
                 Document(
                     page_content=chunk,
